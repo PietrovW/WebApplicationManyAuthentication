@@ -13,7 +13,7 @@ namespace MultiAuthentication.AuthenticationHandlers
 
         public BasicAuthenticationHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
-            ILoggerFactory logger,
+           ILoggerFactory logger,
             UrlEncoder encoder,
             ISystemClock clock)
             : base(options, logger, encoder, clock)
@@ -22,7 +22,6 @@ namespace MultiAuthentication.AuthenticationHandlers
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            // skip authentication if endpoint has [AllowAnonymous] attribute
             var endpoint = Context.GetEndpoint();
             if (endpoint?.Metadata?.GetMetadata<IAllowAnonymous>() != null)
                 return AuthenticateResult.NoResult();

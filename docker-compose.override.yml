@@ -13,10 +13,8 @@ services:
    environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=https://+:443;http://+:80
-      - Jwt__Client=test_client
-      - Jwt__Secret=M5rv0Q2bRqxz6R5IEyVquVWV2SiYLB8a
-      - Jwt__AuthServerUrl=http://localhost:8080/auth/realms/Test
-      - Jwt__Realm=test
+      - jwt__Authority=http://localhost:8080/auth/realms/test
+      - jwt__Audience=test_client
    ports:
       - "80"
       - "443"

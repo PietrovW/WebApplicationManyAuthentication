@@ -8,61 +8,68 @@ using MultiAuthentication.Options;
 string JWTAuthentication = nameof(JWTAuthentication);
 string BasicAuthentication = nameof(BasicAuthentication);
 var builder = WebApplication.CreateBuilder(args);
+try
+{
+   
+   builder.Configuration.AddEnvironmentVariables();
+    var jwtOptions = new JwtOptions();
+    builder.Configuration.GetSection(JwtOptions.Jwt).Bind(jwtOptions);
+    builder.Services.AddAuthentication()
 
-var app = builder.Build();
-builder.Configuration.AddEnvironmentVariables();
-var jwtOptions = new JwtOptions();
-builder.Configuration.GetSection(JwtOptions.Jwt).Bind(jwtOptions);
-builder.Services.AddAuthentication()
-     .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(BasicAuthentication, null)
-.AddJwtBearer(JWTAuthentication, (o =>
-                {
-                   o.MetadataAddress = jwtOptions.Authority;
-                    o.RequireHttpsMetadata = false; // only for dev
-                    o.SaveToken = true;
-                    o.TokenValidationParameters = new TokenValidationParameters
+    .AddJwtBearer(JWTAuthentication, (o =>
                     {
-                        ValidateIssuer = true,
-                        // NOTE: Usually you don't need to set the issuer since the middleware will extract it 
-                        // from the .well-known endpoint provided above. but since I am using the container name in
-                        // the above URL which is not what is published issueer by the well-known, I'm setting it here.
-                        ValidIssuer = jwtOptions.AuthServerUrl,
+                        o.Authority = jwtOptions.Authority;
+                        o.Audience = jwtOptions.Audience;
+                        o.RequireHttpsMetadata = false;
+                        o.Events = new JwtBearerEvents()
+                        {
+                            OnAuthenticationFailed = c =>
+                            {
+                                c.NoResult();
 
-                        ValidAudience = "auth-demo-web-api",
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        ClockSkew = TimeSpan.FromMinutes(1)
-                    };
-                }));
-builder.Services.AddAuthorization(options =>
-{
-    options.DefaultPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme)
-        .Build();
+                                c.Response.StatusCode = 500;
+                                c.Response.ContentType = "text/plain";
 
-    var approvedPolicyBuilder = new AuthorizationPolicyBuilder()
-           .RequireAuthenticatedUser()
-           .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme);
-    options.AddPolicy("Administrator", new AuthorizationPolicyBuilder()
+
+                                return c.Response.WriteAsync(c.Exception.ToString());
+
+                            }
+                        };
+                    })).AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(BasicAuthentication, null);
+    builder.Services.AddAuthorization(options =>
+    {
+        options.DefaultPolicy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
-            .AddAuthenticationSchemes(JWTAuthentication)
-            .RequireClaim("user_roles", "[Administrator]")
-            .Build());
+            .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme)
+            .Build();
 
-    // options.AddPolicy("Administrator", approvedPolicyBuilder.Build());
-});
-builder.Services.AddCors(options =>
+        var approvedPolicyBuilder = new AuthorizationPolicyBuilder()
+               .RequireAuthenticatedUser()
+               .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme);
+        options.AddPolicy("Administrator", new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .AddAuthenticationSchemes(JWTAuthentication)
+                .RequireClaim("user_roles", "[Administrator]")
+                .Build());
+
+            // options.AddPolicy("Administrator", approvedPolicyBuilder.Build());
+        });
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(builder => builder
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+        );
+    });
+    var app = builder.Build();
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapGet("/auth", [Authorize] () => "This endpoint requires authorization.");
+
+    app.Run();
+}
+catch (Exception ex)
 {
-    options.AddDefaultPolicy(builder => builder
-        .AllowAnyOrigin()
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-    );
-});
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapGet("/auth", [Authorize] () => "This endpoint requires authorization.");
 
-app.Run();
+}
