@@ -13,6 +13,10 @@ services:
    environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=https://+:443;http://+:80
+      - Jwt__Client=test_client
+      - Jwt__Secret=M5rv0Q2bRqxz6R5IEyVquVWV2SiYLB8a
+      - Jwt__AuthServerUrl=http://localhost:8080/auth/realms/Test
+      - Jwt__Realm=test
    ports:
       - "80"
       - "443"
@@ -36,7 +40,10 @@ services:
 
   keycloak:
       image: quay.io/keycloak/keycloak:latest
+      volumes:
+      - ./imports:/opt/jboss/keycloak/imports
       environment:
+        KEYCLOAK_IMPORT: /opt/jboss/keycloak/imports/realm-export.json -Dkeycloak.profile.feature.upload_scripts=enabled
         DB_VENDOR: POSTGRES
         DB_ADDR: postgres
         DB_DATABASE: keycloak

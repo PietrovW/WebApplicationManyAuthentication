@@ -26,7 +26,7 @@ builder.Services.AddAuthentication()
                         // NOTE: Usually you don't need to set the issuer since the middleware will extract it 
                         // from the .well-known endpoint provided above. but since I am using the container name in
                         // the above URL which is not what is published issueer by the well-known, I'm setting it here.
-                        ValidIssuer = "http://localhost:8080/auth/realms/AuthDemoRealm",
+                        ValidIssuer = jwtOptions.AuthServerUrl,
 
                         ValidAudience = "auth-demo-web-api",
                         ValidateAudience = true,
@@ -44,8 +44,7 @@ builder.Services.AddAuthorization(options =>
 
     var approvedPolicyBuilder = new AuthorizationPolicyBuilder()
            .RequireAuthenticatedUser()
-           .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme)
-           ;
+           .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme);
     options.AddPolicy("Administrator", new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .AddAuthenticationSchemes(JWTAuthentication)
@@ -54,9 +53,16 @@ builder.Services.AddAuthorization(options =>
 
     // options.AddPolicy("Administrator", approvedPolicyBuilder.Build());
 });
-
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder => builder
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+    );
+});
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGet("/", () => "Hello World!").RequireAuthorization();
+app.MapGet("/auth", [Authorize] () => "This endpoint requires authorization.");
 
 app.Run();
