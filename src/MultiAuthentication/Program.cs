@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using MultiAuthentication.AuthenticationHandlers;
 using MultiAuthentication.Options;
@@ -14,9 +16,15 @@ try
    builder.Configuration.AddEnvironmentVariables();
     var jwtOptions = new JwtOptions();
     builder.Configuration.GetSection(JwtOptions.Jwt).Bind(jwtOptions);
-    builder.Services.AddAuthentication()
-
-    .AddJwtBearer(JWTAuthentication, (o =>
+    builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+  .AddCookie(options =>
+  {
+      options.Cookie.HttpOnly = true;
+      options.Cookie.SecurePolicy = CookieSecurePolicy.None ;
+      options.Cookie.SameSite = SameSiteMode.Lax;
+  })
+      //  .AddCookie(cfg => cfg.SlidingExpiration = true)
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, (o =>
                     {
                         o.Authority = jwtOptions.Authority;
                         o.Audience = jwtOptions.Audience;
@@ -26,11 +34,8 @@ try
                             OnAuthenticationFailed = c =>
                             {
                                 c.NoResult();
-
                                 c.Response.StatusCode = 500;
                                 c.Response.ContentType = "text/plain";
-
-
                                 return c.Response.WriteAsync(c.Exception.ToString());
 
                             }
@@ -48,7 +53,7 @@ try
                .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme);
         options.AddPolicy("Administrator", new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .AddAuthenticationSchemes(JWTAuthentication)
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
                 .RequireClaim("user_roles", "[Administrator]")
                 .Build());
 
@@ -63,6 +68,7 @@ try
         );
     });
     var app = builder.Build();
+
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapGet("/auth", [Authorize] () => "This endpoint requires authorization.");
