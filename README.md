@@ -1,5 +1,5 @@
 # WebApplicationManyAuthentication
 
-[Base authentication documentation](https://datatracker.ietf.org/doc/html/rfc7617)
+[Documentation Base authentication](https://datatracker.ietf.org/doc/html/rfc7617)
 
-[JWT authentication documentation](https://datatracker.ietf.org/doc/rfc8725/)
+[Documentation JWT authentication ](https://datatracker.ietf.org/doc/rfc8725/)
