@@ -10,7 +10,6 @@ namespace MultiAuthentication.AuthenticationHandlers
 {
     public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
-
         public BasicAuthenticationHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
            ILoggerFactory logger,

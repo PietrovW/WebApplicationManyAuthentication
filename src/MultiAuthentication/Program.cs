@@ -5,25 +5,19 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using MultiAuthentication.AuthenticationHandlers;
+using MultiAuthentication.Constants;
 using MultiAuthentication.Options;
+using System.Net;
+using System.Net.Mime;
 
-string JWTAuthentication = nameof(JWTAuthentication);
-string BasicAuthentication = nameof(BasicAuthentication);
 var builder = WebApplication.CreateBuilder(args);
 try
 {
-   
-   builder.Configuration.AddEnvironmentVariables();
+    
+    builder.Configuration.AddEnvironmentVariables();
     var jwtOptions = new JwtOptions();
     builder.Configuration.GetSection(JwtOptions.Jwt).Bind(jwtOptions);
-    builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-  .AddCookie(options =>
-  {
-      options.Cookie.HttpOnly = true;
-      options.Cookie.SecurePolicy = CookieSecurePolicy.None ;
-      options.Cookie.SameSite = SameSiteMode.Lax;
-  })
-      //  .AddCookie(cfg => cfg.SlidingExpiration = true)
+    builder.Services.AddAuthentication()
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, (o =>
                     {
                         o.Authority = jwtOptions.Authority;
@@ -34,31 +28,30 @@ try
                             OnAuthenticationFailed = c =>
                             {
                                 c.NoResult();
-                                c.Response.StatusCode = 500;
-                                c.Response.ContentType = "text/plain";
+                                c.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                                c.Response.ContentType = MediaTypeNames.Text.Plain;
                                 return c.Response.WriteAsync(c.Exception.ToString());
 
                             }
                         };
-                    })).AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(BasicAuthentication, null);
+                    })).AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(AuthenticationConstants.BasicAuthentication, null);
     builder.Services.AddAuthorization(options =>
     {
         options.DefaultPolicy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
-            .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme)
+            .AddAuthenticationSchemes(AuthenticationConstants.BasicAuthentication, JwtBearerDefaults.AuthenticationScheme)
             .Build();
 
-        var approvedPolicyBuilder = new AuthorizationPolicyBuilder()
-               .RequireAuthenticatedUser()
-               .AddAuthenticationSchemes(BasicAuthentication, JwtBearerDefaults.AuthenticationScheme);
-        options.AddPolicy("Administrator", new AuthorizationPolicyBuilder()
+        //var approvedPolicyBuilder = new AuthorizationPolicyBuilder()
+          //     .RequireAuthenticatedUser()
+            //   .AddAuthenticationSchemes(AuthenticationConstants.BasicAuthentication, JwtBearerDefaults.AuthenticationScheme);
+        options.AddPolicy(PolicyConstants.Administrator, new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
                 .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
                 .RequireClaim("user_roles", "[Administrator]")
                 .Build());
 
-            // options.AddPolicy("Administrator", approvedPolicyBuilder.Build());
-        });
+    });
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(builder => builder
