@@ -1,16 +1,26 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.OpenApi.Models;
 using MultiAuthentication.AuthenticationHandlers;
 using MultiAuthentication.Constants;
 using MultiAuthentication.Options;
+using Swashbuckle.AspNetCore.Filters;
 using System.Net;
 using System.Net.Mime;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 var jwtOptions = new JwtOptions();
 builder.Configuration.GetSection(JwtOptions.Jwt).Bind(jwtOptions);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+});
+builder.Services.AddSwaggerExamplesFromAssemblies(Assembly.GetEntryAssembly());
 builder.Services.AddAuthentication()
 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, (o =>
                 {
@@ -55,5 +65,13 @@ var app = builder.Build();
 
 app.UseAuthentication();
 app.UseAuthorization();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("v1/swagger.json", "My API V1");
+    });
+}
 app.MapGet("/auth", [Authorize] () => "This endpoint requires authorization.");
 app.Run();
