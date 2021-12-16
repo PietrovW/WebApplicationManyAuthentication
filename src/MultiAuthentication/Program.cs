@@ -7,6 +7,7 @@ using MultiAuthentication.AuthenticationHandlers;
 using MultiAuthentication.Constants;
 using MultiAuthentication.Options;
 using Swashbuckle.AspNetCore.Filters;
+using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Net;
 using System.Net.Mime;
 using System.Reflection;
@@ -21,7 +22,7 @@ builder.Services.AddSwaggerGen(setup =>
     setup.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
     var jwtSecurityScheme = new OpenApiSecurityScheme
     {
-        Scheme = "bearer",
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
         BearerFormat = "JWT",
         Name = "JWT Authentication",
         In = ParameterLocation.Header,
@@ -35,14 +36,28 @@ builder.Services.AddSwaggerGen(setup =>
         }
     };
     setup.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, jwtSecurityScheme);
-    setup.AddSecurityDefinition("basic", new OpenApiSecurityScheme
+    setup.AddSecurityDefinition(AuthenticationConstants.BasicAuthentication, new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
-        Scheme = "basic",
+        Scheme = AuthenticationConstants.BasicAuthentication,
         In = ParameterLocation.Header,
         Description = "Basic Authorization header using the Basic scheme."
     });
+    setup.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = AuthenticationConstants.BasicAuthentication
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
 
 });
 builder.Services.AddSwaggerExamplesFromAssemblies(Assembly.GetEntryAssembly());
@@ -73,7 +88,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(PolicyConstants.Administrator, new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-            .RequireClaim("user_roles", "[Administrator]")
+            .RequireClaim("user_roles", "[ADMIN]")
             .Build());
 
 });
@@ -95,6 +110,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("v1/swagger.json", "My API V1");
+        c.DocExpansion(DocExpansion.Full);
     });
 }
 app.MapGet("/auth", [Authorize] () => "This endpoint requires authorization.");
