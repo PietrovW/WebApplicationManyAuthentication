@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using MultiAuthentication.AuthenticationHandlers;
 using MultiAuthentication.Constants;
@@ -9,16 +10,72 @@ using Swashbuckle.AspNetCore.Filters;
 using System.Net;
 using System.Net.Mime;
 using System.Reflection;
-
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 var jwtOptions = new JwtOptions();
 builder.Configuration.GetSection(JwtOptions.Jwt).Bind(jwtOptions);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddSwaggerGen(setup =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    setup.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    var jwtSecurityScheme = new OpenApiSecurityScheme
+    {
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Name = "JWT Authentication",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Description = "Put **_ONLY_** your JWT Bearer token on textbox below!",
+
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+    var jwtSecurityScheme2 = new OpenApiSecurityScheme
+    {
+        Scheme = AuthenticationConstants.BasicAuthentication,
+        BearerFormat = "JWT",
+        Name = "JWT Authentication",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Description = "Put **_ONLY_** your JWT Bearer token on textbox below!",
+
+        Reference = new OpenApiReference
+        {
+            Id = AuthenticationConstants.BasicSchemeName,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+    setup.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, jwtSecurityScheme);
+    setup.AddSecurityDefinition("basic", new OpenApiSecurityScheme
+     {
+         Name = "Authorization",
+         Type = SecuritySchemeType.Http,
+         Scheme = "basic",
+         In = ParameterLocation.Header,
+         Description = "Basic Authorization header using the Bearer scheme."
+     });
+    setup.AddSecurityRequirement(new OpenApiSecurityRequirement  
+{
+    {
+        new OpenApiSecurityScheme
+        {
+            Reference = new OpenApiReference
+            {
+                Type = ReferenceType.SecurityScheme,
+                Id = "basic"
+            }
+        },  
+                            new string[] { "tt","hhh"}
+                    }
+});
+setup.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { jwtSecurityScheme, Array.Empty<string>() }
+    });
 });
 builder.Services.AddSwaggerExamplesFromAssemblies(Assembly.GetEntryAssembly());
 builder.Services.AddAuthentication()
@@ -35,7 +92,6 @@ builder.Services.AddAuthentication()
                             c.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                             c.Response.ContentType = MediaTypeNames.Text.Plain;
                             return c.Response.WriteAsync(c.Exception.ToString());
-
                         }
                     };
                 })).AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(AuthenticationConstants.BasicAuthentication, null);
