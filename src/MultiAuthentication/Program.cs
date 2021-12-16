@@ -43,31 +43,6 @@ builder.Services.AddSwaggerGen(setup =>
         In = ParameterLocation.Header,
         Description = "Basic Authorization header using the Basic scheme."
     });
-    setup.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "basic"
-                }
-            },
-                 new string[] { "tt","hhh"}
-          },
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = JwtBearerDefaults.AuthenticationScheme
-                }
-            },
-                 new string[] { "tt","hhh"}
-          }
-    });
 
 });
 builder.Services.AddSwaggerExamplesFromAssemblies(Assembly.GetEntryAssembly());
