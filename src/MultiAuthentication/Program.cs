@@ -26,7 +26,7 @@ builder.Services.AddSwaggerGen(setup =>
         Name = "JWT Authentication",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
-        Description = "Put **_ONLY_** your JWT Bearer token on textbox below!",
+        Description = "Bearer Authorization header using the Bearer scheme.",
 
         Reference = new OpenApiReference
         {
@@ -34,48 +34,41 @@ builder.Services.AddSwaggerGen(setup =>
             Type = ReferenceType.SecurityScheme
         }
     };
-    var jwtSecurityScheme2 = new OpenApiSecurityScheme
-    {
-        Scheme = AuthenticationConstants.BasicAuthentication,
-        BearerFormat = "JWT",
-        Name = "JWT Authentication",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Description = "Put **_ONLY_** your JWT Bearer token on textbox below!",
-
-        Reference = new OpenApiReference
-        {
-            Id = AuthenticationConstants.BasicSchemeName,
-            Type = ReferenceType.SecurityScheme
-        }
-    };
     setup.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, jwtSecurityScheme);
     setup.AddSecurityDefinition("basic", new OpenApiSecurityScheme
-     {
-         Name = "Authorization",
-         Type = SecuritySchemeType.Http,
-         Scheme = "basic",
-         In = ParameterLocation.Header,
-         Description = "Basic Authorization header using the Bearer scheme."
-     });
-    setup.AddSecurityRequirement(new OpenApiSecurityRequirement  
-{
     {
-        new OpenApiSecurityScheme
-        {
-            Reference = new OpenApiReference
-            {
-                Type = ReferenceType.SecurityScheme,
-                Id = "basic"
-            }
-        },  
-                            new string[] { "tt","hhh"}
-                    }
-});
-setup.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        { jwtSecurityScheme, Array.Empty<string>() }
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "basic",
+        In = ParameterLocation.Header,
+        Description = "Basic Authorization header using the Basic scheme."
     });
+    setup.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "basic"
+                }
+            },
+                 new string[] { "tt","hhh"}
+          },
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = JwtBearerDefaults.AuthenticationScheme
+                }
+            },
+                 new string[] { "tt","hhh"}
+          }
+    });
+
 });
 builder.Services.AddSwaggerExamplesFromAssemblies(Assembly.GetEntryAssembly());
 builder.Services.AddAuthentication()
